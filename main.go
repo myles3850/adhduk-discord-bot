@@ -24,12 +24,12 @@ func main() {
 		web.GetAllEmojis(ctx, emojis)
 	})
 
-	server.POST("emoji/:id/roles", func(ctx *gin.Context) {
+	server.POST("emoji/:id/role", func(ctx *gin.Context) {
 		id := ctx.Param("id")
 		discord.EditEmojiRoles(id,web.UpdateEmojiRoles(ctx))
 	})
 
-	server.GET("roles", func(ctx *gin.Context) {
+	server.GET("role", func(ctx *gin.Context) {
 		web.GetAllRoles(ctx, discord.GetAllRoles())
 	})
 
