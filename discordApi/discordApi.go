@@ -44,6 +44,15 @@ func (d *Discord) GetOneEmoji(emojiId string) *discordgo.Emoji {
 	return emoji
 }
 
+func (d *Discord) GetAllRoles() []*discordgo.Role {
+	roles, err := d.Session.GuildRoles(d.GuildId)
+	if err != nil {
+		fmt.Println("error getting emoji: ", err)
+		return nil
+	}
+	return roles
+}
+
 func (d *Discord) EditEmojiRoles(emojiId string, params *discordgo.EmojiParams) error {
 	_, err := d.Session.GuildEmojiEdit(d.GuildId, emojiId, params)
 	if err != nil {
