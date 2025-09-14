@@ -21,6 +21,9 @@ func Setup() *WebCtx {
 }
 
 func (ctx WebCtx) GetAllEmojis(c *gin.Context, emojis []*discordgo.Emoji) {
+	if emojis == nil {
+		c.JSON(http.StatusInternalServerError, emojis)
+	}
 	c.JSON(http.StatusOK, emojis)
 }
 
