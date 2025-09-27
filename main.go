@@ -19,6 +19,12 @@ func main() {
 	web := webapi.Setup()
 	server := web.Gin
 
+	registerApiEndpoints(web.Gin, discord, web)
+
+	server.Run()
+}
+
+func registerApiEndpoints(server *gin.Engine, discord *discordapi.Discord, web *webapi.WebCtx) {
 	server.GET("emoji", func(ctx *gin.Context) {
 		emojis := discord.GetAllEmojis()
 		web.GetAllEmojis(ctx, emojis)
@@ -26,12 +32,10 @@ func main() {
 
 	server.POST("emoji/:id/role", func(ctx *gin.Context) {
 		id := ctx.Param("id")
-		discord.EditEmojiRoles(id,web.UpdateEmojiRoles(ctx))
+		discord.EditEmojiRoles(id, web.UpdateEmojiRoles(ctx))
 	})
 
 	server.GET("role", func(ctx *gin.Context) {
 		web.GetAllRoles(ctx, discord.GetAllRoles())
 	})
-
-	server.Run()
 }
