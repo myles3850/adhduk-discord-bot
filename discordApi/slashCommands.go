@@ -8,10 +8,11 @@ import (
 )
 
 type CommandName struct {
-	wheel string
+	wheel     string
+	eightBall string
 }
 
-var names = &CommandName{wheel: "wheel"}
+var names = &CommandName{wheel: "wheel", eightBall: "eight_ball"}
 
 func (d Discord) RegisterCommands() {
 	s := d.Session
@@ -20,7 +21,6 @@ func (d Discord) RegisterCommands() {
 	minStringLength := 2
 
 	commands := []*discordgo.ApplicationCommand{
-
 		{
 			Name:        names.wheel,
 			Description: "Give me a selection, and ill pick one for you",
@@ -69,6 +69,19 @@ func (d Discord) RegisterCommands() {
 				},
 			},
 		},
+		{
+			Name:        names.eightBall,
+			Description: "ask DeeDee to shake the mystical 8 ball for you",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "question",
+					Description: "give me your question so i can find out the answer",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Required:    true,
+					MinLength:   &minStringLength,
+				},
+			},
+		},
 	}
 
 	for _, cmd := range commands {
@@ -92,6 +105,10 @@ func (d Discord) OnInteraction(s *discordgo.Session, i *discordgo.InteractionCre
 	switch data.Name {
 	case names.wheel:
 		d.processWheelCommand(i)
+		return
+	case names.eightBall:
+		d.process8BallCommand(i)
+		return
 	}
 }
 
@@ -107,7 +124,7 @@ func (d Discord) processWheelCommand(interaction *discordgo.InteractionCreate) {
 		session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("👋 Hello, %s!", user),
+				Content: fmt.Sprintf("sorry, %s, but i cant seem to find your options :(", user),
 			},
 		})
 
@@ -123,6 +140,36 @@ func (d Discord) processWheelCommand(interaction *discordgo.InteractionCreate) {
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Interesting choices... im feeling %s this time.", chosen),
+		},
+	})
+}
+
+func (d Discord) process8BallCommand(interaction *discordgo.InteractionCreate) {
+
+	data := interaction.ApplicationCommandData()
+	session := d.Session
+	user := interaction.Member.Nick
+
+
+	question := data.Options[0].StringValue()
+	ballAnswers := []string{"Yes", "No"}
+
+	if len(question) == 0 {
+		session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("sorry, %s, but i cant seem to find your question :(", user),
+			},
+		})
+
+	}
+
+	chosen := ballAnswers[rand.Intn(len(ballAnswers))]
+
+	session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("I asked the magical 8 ball, and it said yes %s! when i asked it \"%s\" ", chosen, question),
 		},
 	})
 }
