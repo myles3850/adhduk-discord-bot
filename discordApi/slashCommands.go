@@ -150,7 +150,6 @@ func (d Discord) process8BallCommand(interaction *discordgo.InteractionCreate) {
 	session := d.Session
 	user := interaction.Member.Nick
 
-
 	question := data.Options[0].StringValue()
 	ballAnswers := []string{"Yes", "No"}
 
@@ -169,7 +168,7 @@ func (d Discord) process8BallCommand(interaction *discordgo.InteractionCreate) {
 	session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("I asked the magical 8 ball, and it said yes %s! when i asked it \"%s\" ", chosen, question),
+			Content: fmt.Sprintf("I asked the magical 8 ball \"%s\" , and it said yes **%s**.", question, chosen),
 		},
 	})
 }
