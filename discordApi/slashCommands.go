@@ -93,6 +93,8 @@ func (d Discord) OnInteraction(i *discordgo.InteractionCreate) {
 	}
 }
 
+//from here all functions are processing functions
+
 func (d Discord) processWheelCommand(interaction *discordgo.InteractionCreate) {
 	var options []string
 	data := interaction.ApplicationCommandData()
