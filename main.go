@@ -14,7 +14,15 @@ func main() {
 	if err != nil {
 		panic(1)
 	}
+
+	if err := discord.Session.Open(); err != nil {
+		panic("Error opening Discord session: " + err.Error())
+	}
+
+	println("🤖 Bot is running and connected to Discord!")
+
 	defer discord.Session.Close()
+	discord.RegisterCommands()
 	discord.Session.AddHandler(discord.OnInteraction)
 
 

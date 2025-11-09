@@ -74,12 +74,14 @@ func (d Discord) RegisterCommands() {
 	for _, cmd := range commands {
 		_, err := s.ApplicationCommandCreate(appID, guildID, cmd)
 		if err != nil {
-			fmt.Println("Error creating command:", err)
+			fmt.Printf("❌ Cannot create command '%v': %v\n", cmd.Name, err)
+		} else {
+			fmt.Printf("✅ Registered command '%v'\n", cmd.Name)
 		}
 	}
 }
 
-func (d Discord) OnInteraction(i *discordgo.InteractionCreate) {
+func (d Discord) OnInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	if i.Type != discordgo.InteractionApplicationCommand {
 		return
