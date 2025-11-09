@@ -11,17 +11,19 @@ import (
 func main() {
 	godotenv.Load()
 	discord, err := discordapi.Setup()
-	defer discord.Session.Close()
 	if err != nil {
 		panic(1)
 	}
+	defer discord.Session.Close()
+	discord.Session.AddHandler(discord.OnInteraction)
+
 
 	web := webapi.Setup()
 	server := web.Gin
-
 	registerApiEndpoints(web.Gin, discord, web)
 
 	server.Run()
+
 }
 
 func registerApiEndpoints(server *gin.Engine, discord *discordapi.Discord, web *webapi.WebCtx) {

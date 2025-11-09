@@ -15,6 +15,7 @@ type Discord struct {
 func Setup() (*Discord, error) {
 	token := os.Getenv("DISCORD_BOT_TOKEN")
 	guildId := os.Getenv("DISCORD_GUILD_ID")
+
 	discord, err := discordgo.New("Bot " + token)
 
 	if err != nil {
