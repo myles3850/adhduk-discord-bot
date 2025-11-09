@@ -168,7 +168,7 @@ func (d Discord) process8BallCommand(interaction *discordgo.InteractionCreate) {
 	session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("I asked the magical 8 ball \"%s\" , and it said yes **%s**.", question, chosen),
+			Content: fmt.Sprintf("I asked the magical 8 ball \"%s\" , and it said **%s**.", question, chosen),
 		},
 	})
 }
