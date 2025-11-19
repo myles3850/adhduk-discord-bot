@@ -3,6 +3,7 @@ package discordapi
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -179,7 +180,19 @@ func (d Discord) process8BallCommand(interaction *discordgo.InteractionCreate) {
 				Content: fmt.Sprintf("sorry, %s, but the ball refuses to answer my call :(", user),
 			},
 		})
+		return
+	}
 
+	questionOfLife := "what is the answer to life the universe and everything"
+
+	if strings.Contains(question, questionOfLife) {
+		session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("I asked the magical 8 ball \"%s\" , and it said **42**.", question),
+			},
+		})
+		return
 	}
 
 	selectedAnswer := ballAnswers[rand.Intn(len(ballAnswers))]
