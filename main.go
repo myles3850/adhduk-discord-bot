@@ -8,6 +8,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+//comment to check branch rules
+
 func main() {
 	godotenv.Load()
 	discord, err := discordapi.Setup()
