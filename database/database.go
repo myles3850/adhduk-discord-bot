@@ -38,3 +38,6 @@ func Setup() *Db {
 	fmt.Printf("database connected and online: \n %+v \n", db.session.Stats())
 	return &db
 }
+
+func (d Db) getUser (userId int) {
+	sqlQuery := "SELECT * FROM USERS WHERE 
