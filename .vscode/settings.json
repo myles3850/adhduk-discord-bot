@@ -1,3 +1,27 @@
 {
-	"cSpell.words": ["bwmarrin", "discordapi", "joho", "webapi"]
+	"cSpell.words": [
+		"bwmarrin",
+		"bytedance",
+		"cloudwego",
+		"contrib",
+		"cpuid",
+		"davecgh",
+		"dbname",
+		"discordapi",
+		"goccy",
+		"gofuzz",
+		"gopkg",
+		"iasm",
+		"isatty",
+		"joho",
+		"klauspost",
+		"leodido",
+		"mattn",
+		"pelletier",
+		"psql",
+		"twitchyliquid",
+		"ugorji",
+		"vasile",
+		"webapi"
+	]
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"choccobear.tech/emojiBot/database"
 	discordapi "choccobear.tech/emojiBot/discordApi"
 	webapi "choccobear.tech/emojiBot/webApi"
 
@@ -8,27 +9,37 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func main() {
+var databaseInstance *database.Db
+var discordInstance *discordapi.Discord
+var apiInstance *webapi.WebCtx
+
+func init() {
 	godotenv.Load()
-	discord, err := discordapi.Setup()
-	if err != nil {
-		panic(1)
+	var error error
+
+	databaseInstance = database.Setup()
+	discordInstance, error = discordapi.Setup(databaseInstance)
+	apiInstance = webapi.Setup()
+
+	if error != nil {
+		panic(3)
 	}
 
-	if err := discord.Session.Open(); err != nil {
+}
+
+func main() {
+
+	if err := discordInstance.Session.Open(); err != nil {
 		panic("Error opening Discord session: " + err.Error())
 	}
-
+	defer discordInstance.Session.Close()
 	println("🤖 Bot is running and connected to Discord!")
 
-	defer discord.Session.Close()
-	discord.RegisterCommands()
-	discord.Session.AddHandler(discord.OnInteraction)
+	discordInstance.RegisterCommands()
+	discordInstance.Session.AddHandler(discordInstance.OnInteraction)
 
-
-	web := webapi.Setup()
-	server := web.Gin
-	registerApiEndpoints(web.Gin, discord, web)
+	server := apiInstance.Gin
+	registerApiEndpoints(apiInstance.Gin, discordInstance, apiInstance)
 
 	server.Run()
 
