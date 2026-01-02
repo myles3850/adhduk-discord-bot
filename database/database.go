@@ -53,5 +53,8 @@ func (d Db) GetUser (userId int) *User{
 }
 
 func (d Db) SaveUser (u *User) {
-	sqlQuery := "INSERT INTO users (discord_id, discord_username)
-VALUES (%1, %2)
+	sqlQuery := "INSERT INTO users (discord_id, discord_username)" +
+"VALUES (%1, %2)"
+
+	d.session.query(sqlQuery, u.Discord_id, u.Discord_username)
+}
