@@ -14,8 +14,8 @@ type Db struct {
 
 type User struct {
 	id int
-	discord_id int
-	discord_username string
+	Discord_id int
+	Discord_username string
 }
 
 func Setup() *Db {
@@ -45,9 +45,13 @@ func Setup() *Db {
 	return &db
 }
 
-func (d Db) getUser (userId int) *User{
+func (d Db) GetUser (userId int) *User{
 	user := User{}
-	sqlQuery := "SELECT * FROM USERS WHERE discord_id = %1"
+	sqlQuery := "SELECT * FROM users WHERE discord_id = %1"
 	d.session.query(sqlQuery, userId).scan(&user)
  return &user
 }
+
+func (d Db) SaveUser (u *User) {
+	sqlQuery := "INSERT INTO users (discord_id, discord_username)
+VALUES (%1, %2)
