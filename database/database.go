@@ -12,6 +12,12 @@ type Db struct {
 	session *sql.DB
 }
 
+type User struct {
+	id int
+	discord_id int
+	discord_username string
+}
+
 func Setup() *Db {
 	db := Db{}
 	host := os.Getenv("DATABASE_HOST")
@@ -39,5 +45,9 @@ func Setup() *Db {
 	return &db
 }
 
-func (d Db) getUser (userId int) {
-	sqlQuery := "SELECT * FROM USERS WHERE 
+func (d Db) getUser (userId int) *User{
+	user := User{}
+	sqlQuery := "SELECT * FROM USERS WHERE discord_id = %1"
+	d.session.query(sqlQuery, userId).scan(&user)
+ return &user
+}
