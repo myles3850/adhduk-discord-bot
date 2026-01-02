@@ -13,13 +13,13 @@ type Db struct {
 }
 
 type User struct {
-	id int
-	Discord_id int
+	id               int
+	Discord_id       int
 	Discord_username string
 }
 
 func Setup() *Db {
-	db := Db{}
+	var db Db
 	host := os.Getenv("DATABASE_HOST")
 	port := os.Getenv("DATABASE_PORT")
 	user := os.Getenv("DATABASE_USER")
@@ -45,16 +45,25 @@ func Setup() *Db {
 	return &db
 }
 
-func (d Db) GetUser (userId int) *User{
-	user := User{}
-	sqlQuery := "SELECT * FROM users WHERE discord_id = %1"
-	d.session.query(sqlQuery, userId).scan(&user)
- return &user
+func (d *Db) GetUser(userId int) *User {
+	var user User
+	sqlQuery := "SELECT * FROM users WHERE discord_id = $1"
+	err := d.session.QueryRow(sqlQuery, userId).Scan(&user)
+	switch err {
+	case sql.ErrNoRows:
+		return nil
+	default:
+		return &user
+	}
 }
 
-func (d Db) SaveUser (u *User) {
+func (d *Db) SaveUser(u *User) {
+	// todo - an upsert would be better here to keep idempotency
 	sqlQuery := "INSERT INTO users (discord_id, discord_username)" +
-"VALUES (%1, %2)"
+		"VALUES ($1, $2)"
 
-	d.session.query(sqlQuery, u.Discord_id, u.Discord_username)
+	_, err := d.session.Query(sqlQuery, u.Discord_id, u.Discord_username)
+	if err != nil {
+		fmt.Printf("unable to save user %s: %+v", u.Discord_username, err.Error())
+	}
 }
