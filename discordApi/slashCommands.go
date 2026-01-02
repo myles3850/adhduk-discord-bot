@@ -9,11 +9,12 @@ import (
 )
 
 type CommandName struct {
-	wheel     string
-	eightBall string
+	wheel          string
+	eightBall      string
+	autoEmojiReact string
 }
 
-var names = &CommandName{wheel: "wheel", eightBall: "eight_ball"}
+var names = &CommandName{wheel: "wheel", eightBall: "eight_ball", autoEmojiReact: "auto_emoji_react"}
 
 func (d Discord) RegisterCommands() {
 	s := d.Session
@@ -83,6 +84,24 @@ func (d Discord) RegisterCommands() {
 				},
 			},
 		},
+		{
+			Name:        names.autoEmojiReact,
+			Description: "Mod only - add auto emoji react to new messages in the specified channel",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "Channel",
+					Description: "Select a channel to apply to",
+					Type:        discordgo.ApplicationCommandOptionChannel,
+					Required:    true,
+				},
+				{
+					Name:        "Emoji",
+					Description: "Select the emoji for the reaction",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Required:    true,
+				},
+			},
+		},
 	}
 
 	for _, cmd := range commands {
@@ -102,6 +121,9 @@ func (d Discord) OnInteraction(s *discordgo.Session, i *discordgo.InteractionCre
 	}
 
 	data := i.ApplicationCommandData()
+
+	// TODO
+	// Make sure the emoji command is mod-only
 
 	switch data.Name {
 	case names.wheel:
