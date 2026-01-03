@@ -28,6 +28,7 @@ func init() {
 }
 
 func main() {
+	defer databaseInstance.Session.Close()
 
 	if err := discordInstance.Session.Open(); err != nil {
 		panic("Error opening Discord session: " + err.Error())

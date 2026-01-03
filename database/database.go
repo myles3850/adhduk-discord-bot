@@ -9,7 +9,7 @@ import (
 )
 
 type Db struct {
-	session *sql.DB
+	Session *sql.DB
 }
 
 type User struct {
@@ -34,36 +34,42 @@ func Setup() *Db {
 	if err != nil {
 		panic(err)
 	}
-	db.session = d
-	defer db.session.Close()
+	db.Session = d
 
-	err = db.session.Ping()
+	err = db.Session.Ping()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("database connected and online: \n %+v \n", db.session.Stats())
+	fmt.Printf("database connected and online: \n %+v \n", db.Session.Stats())
 	return &db
 }
 
-func (d *Db) GetUser(userId int) *User {
+func (d *Db) GetUser(userId int) User {
 	var user User
 	sqlQuery := "SELECT * FROM users WHERE discord_id = $1"
-	err := d.session.QueryRow(sqlQuery, userId).Scan(&user)
+    err := d.Session.QueryRow(sqlQuery, userId).Scan(
+        &user.id,
+        &user.Discord_id,
+        &user.Discord_username,
+        // Add other fields here if needed
+    )
 	switch err {
 	case sql.ErrNoRows:
-		return nil
+		println(err.Error())
+		return User{}
 	default:
-		return &user
+		return user
 	}
 }
 
-func (d *Db) SaveUser(u *User) {
+func (d *Db) SaveUser(u User) {
 	// todo - an upsert would be better here to keep idempotency
-	sqlQuery := "INSERT INTO users (discord_id, discord_username)" +
+
+	sqlQuery := "INSERT INTO users (discord_id, discord_user)" +
 		"VALUES ($1, $2)"
 
-	_, err := d.session.Query(sqlQuery, u.Discord_id, u.Discord_username)
+	_, err := d.Session.Exec(sqlQuery, u.Discord_id, u.Discord_username)
 	if err != nil {
-		fmt.Printf("unable to save user %s: %+v", u.Discord_username, err.Error())
+		fmt.Printf("unable to save user %s: %+v \n", u.Discord_username, err.Error())
 	}
 }
