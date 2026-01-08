@@ -1,4 +1,4 @@
-CREATE TABLE CompletedChannelTracking (
+CREATE TABLE completed_channels (
 	id SERIAL PRIMARY KEY,
 	channel_id VARCHAR(255) NOT NULL UNIQUE,
 	processed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
