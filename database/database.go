@@ -1,0 +1,134 @@
+package database
+
+import (
+	"database/sql"
+	"fmt"
+	"os"
+	"time"
+
+	_ "github.com/lib/pq"
+)
+
+type Db struct {
+	Session *sql.DB
+}
+
+type User struct {
+	id              int
+	DiscordID       string
+	DiscordUsername string
+}
+
+type Message struct {
+	id               int
+	DiscordMessageID string
+	ChannelID        string
+	AuthorID         int
+	CreatedAt        time.Time
+}
+
+type Reaction struct {
+	id        int
+	MessageID int
+	Emoji     string
+	ReactorID int
+}
+
+func Setup() *Db {
+	var db Db
+	host := os.Getenv("DATABASE_HOST")
+	port := os.Getenv("DATABASE_PORT")
+	user := os.Getenv("DATABASE_USER")
+	pass := os.Getenv("DATABASE_PASS")
+	database := os.Getenv("DATABASE_DB")
+
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		host, port, user, pass, database)
+
+	d, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		panic(err)
+	}
+	db.Session = d
+
+	err = db.Session.Ping()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("database connected and online: \n %+v \n", db.Session.Stats())
+	return &db
+}
+
+func (d *Db) GetUser(userId int) User {
+	var user User
+	sqlQuery := "SELECT * FROM users WHERE discord_id = $1"
+	err := d.Session.QueryRow(sqlQuery, userId).Scan(
+		&user.id,
+		&user.DiscordID,
+		&user.DiscordUsername,
+	)
+	switch err {
+	case sql.ErrNoRows:
+		println(err.Error())
+		return User{}
+	default:
+		return user
+	}
+}
+
+func (d *Db) SaveUser(u *User) (int, error) {
+	var id int
+	sqlQuery := `INSERT INTO users (discord_id, discord_user)
+VALUES ($1, $2)
+ON CONFLICT (discord_id) DO UPDATE SET discord_user = EXCLUDED.discord_user
+RETURNING id;`
+
+	err := d.Session.QueryRow(sqlQuery, u.DiscordID, u.DiscordUsername).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (d *Db) SaveMessage(m *Message) (int, error) {
+	var id int
+	sqlQuery := `INSERT INTO messages (discord_message_id, channel_id, author_id, created_at)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (discord_message_id)
+DO UPDATE SET channel_id = EXCLUDED.channel_id,
+			  author_id = EXCLUDED.author_id,
+			  created_at = EXCLUDED.created_at
+RETURNING id;`
+
+	err := d.Session.QueryRow(sqlQuery, m.DiscordMessageID, m.ChannelID, m.AuthorID, m.CreatedAt).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (d *Db) SaveMessageWithAuthor(m *Message, author *User) (int, int, error) {
+	uid, err := d.SaveUser(author)
+	if err != nil {
+		return 0, 0, err
+	}
+	m.AuthorID = uid
+	mid, err := d.SaveMessage(m)
+	if err != nil {
+		return 0, uid, err
+	}
+	return mid, uid, nil
+}
+
+func (d *Db) SaveReaction(r *Reaction) {
+	sqlQuery := `INSERT INTO reactions (message_id, emoji, reactor_id)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (message_id, emoji, reactor_id)
+		DO UPDATE SET emoji = EXCLUDED.emoji, reactor_id = EXCLUDED.reactor_id;`
+
+	_, err := d.Session.Exec(sqlQuery, r.MessageID, r.Emoji, r.ReactorID)
+	if err != nil {
+		fmt.Printf("unable to save reaction for message %d: %+v \n", r.MessageID, err.Error())
+	}
+}
