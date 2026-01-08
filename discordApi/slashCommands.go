@@ -231,6 +231,11 @@ func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
 	}
 
 	for _, channel := range channels {
+		channelComplete, _ := d.Database.IsChannelCompleted(channel.ID)
+		if channelComplete {
+			fmt.Printf("skipping channel %s as already completed", channel.Name)
+			continue
+		}
 		var lastMessage string
 		for {
 			fmt.Printf("processing messages from channel %s", channel.Name)
@@ -272,6 +277,7 @@ func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
 				}
 			}
 			if len(messages) < fetchMessageBatchSize {
+				_ = d.Database.MarkChannelCompleted(channel.ID)
 				lastMessage = ""
 				break
 			}
