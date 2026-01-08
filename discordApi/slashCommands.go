@@ -216,6 +216,7 @@ func (d *Discord) process8BallCommand(interaction *discordgo.InteractionCreate) 
 }
 
 func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
+	const fetchMessageBatchSize = 100
 
 	d.Session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -233,7 +234,7 @@ func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
 		var lastMessage string
 		for {
 			fmt.Printf("processing messages from channel %s", channel.Name)
-			messages, err := d.Session.ChannelMessages(channel.ID, 10, lastMessage, "", "")
+			messages, err := d.Session.ChannelMessages(channel.ID, fetchMessageBatchSize, lastMessage, "", "")
 			if err != nil {
 				fmt.Printf("%+v", err)
 			}
@@ -270,7 +271,7 @@ func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
 					}
 				}
 			}
-			if len(messages) < 10 {
+			if len(messages) < fetchMessageBatchSize {
 				lastMessage = ""
 				break
 			}
