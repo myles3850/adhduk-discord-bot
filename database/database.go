@@ -34,6 +34,12 @@ type Reaction struct {
 	ReactorID int
 }
 
+type CompletedChannel struct {
+	id          int
+	ChannelID   string
+	CompletedAt time.Time
+}
+
 func Setup() *Db {
 	var db Db
 	host := os.Getenv("DATABASE_HOST")
@@ -130,5 +136,31 @@ func (d *Db) SaveReaction(r *Reaction) {
 	_, err := d.Session.Exec(sqlQuery, r.MessageID, r.Emoji, r.ReactorID)
 	if err != nil {
 		fmt.Printf("unable to save reaction for message %d: %+v \n", r.MessageID, err.Error())
+	}
+}
+
+func (d *Db) MarkChannelCompleted(channelId string) error {
+	sqlQuery := `INSERT INTO completed_channels (channel_id, completed_at)
+VALUES ($1, $2)
+ON CONFLICT (channel_id) DO UPDATE SET completed_at = EXCLUDED.completed_at;`
+
+	_, err := d.Session.Exec(sqlQuery, channelId, time.Now())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Db) IsChannelCompleted(channelId string) (bool, error) {
+	var id int
+	sqlQuery := "SELECT id FROM completed_channels WHERE channel_id = $1"
+	err := d.Session.QueryRow(sqlQuery, channelId).Scan(&id)
+	switch err {
+	case sql.ErrNoRows:
+		return false, nil
+	case nil:
+		return true, nil
+	default:
+		return false, err
 	}
 }
