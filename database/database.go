@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -13,9 +14,24 @@ type Db struct {
 }
 
 type User struct {
+	id              int
+	DiscordID       string
+	DiscordUsername string
+}
+
+type Message struct {
 	id               int
-	Discord_id       int
-	Discord_username string
+	DiscordMessageID string
+	ChannelID        string
+	AuthorID         int
+	CreatedAt        time.Time
+}
+
+type Reaction struct {
+	id        int
+	MessageID int
+	Emoji     string
+	ReactorID int
 }
 
 func Setup() *Db {
@@ -47,12 +63,11 @@ func Setup() *Db {
 func (d *Db) GetUser(userId int) User {
 	var user User
 	sqlQuery := "SELECT * FROM users WHERE discord_id = $1"
-    err := d.Session.QueryRow(sqlQuery, userId).Scan(
-        &user.id,
-        &user.Discord_id,
-        &user.Discord_username,
-        // Add other fields here if needed
-    )
+	err := d.Session.QueryRow(sqlQuery, userId).Scan(
+		&user.id,
+		&user.DiscordID,
+		&user.DiscordUsername,
+	)
 	switch err {
 	case sql.ErrNoRows:
 		println(err.Error())
@@ -62,14 +77,58 @@ func (d *Db) GetUser(userId int) User {
 	}
 }
 
-func (d *Db) SaveUser(u User) {
-	// todo - an upsert would be better here to keep idempotency
+func (d *Db) SaveUser(u *User) (int, error) {
+	var id int
+	sqlQuery := `INSERT INTO users (discord_id, discord_user)
+VALUES ($1, $2)
+ON CONFLICT (discord_id) DO UPDATE SET discord_user = EXCLUDED.discord_user
+RETURNING id;`
 
-	sqlQuery := "INSERT INTO users (discord_id, discord_user)" +
-		"VALUES ($1, $2)"
-
-	_, err := d.Session.Exec(sqlQuery, u.Discord_id, u.Discord_username)
+	err := d.Session.QueryRow(sqlQuery, u.DiscordID, u.DiscordUsername).Scan(&id)
 	if err != nil {
-		fmt.Printf("unable to save user %s: %+v \n", u.Discord_username, err.Error())
+		return 0, err
+	}
+	return id, nil
+}
+
+func (d *Db) SaveMessage(m *Message) (int, error) {
+	var id int
+	sqlQuery := `INSERT INTO messages (discord_message_id, channel_id, author_id, created_at)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (discord_message_id)
+DO UPDATE SET channel_id = EXCLUDED.channel_id,
+			  author_id = EXCLUDED.author_id,
+			  created_at = EXCLUDED.created_at
+RETURNING id;`
+
+	err := d.Session.QueryRow(sqlQuery, m.DiscordMessageID, m.ChannelID, m.AuthorID, m.CreatedAt).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (d *Db) SaveMessageWithAuthor(m *Message, author *User) (int, int, error) {
+	uid, err := d.SaveUser(author)
+	if err != nil {
+		return 0, 0, err
+	}
+	m.AuthorID = uid
+	mid, err := d.SaveMessage(m)
+	if err != nil {
+		return 0, uid, err
+	}
+	return mid, uid, nil
+}
+
+func (d *Db) SaveReaction(r *Reaction) {
+	sqlQuery := `INSERT INTO reactions (message_id, emoji, reactor_id)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (message_id, emoji, reactor_id)
+		DO UPDATE SET emoji = EXCLUDED.emoji, reactor_id = EXCLUDED.reactor_id;`
+
+	_, err := d.Session.Exec(sqlQuery, r.MessageID, r.Emoji, r.ReactorID)
+	if err != nil {
+		fmt.Printf("unable to save reaction for message %d: %+v \n", r.MessageID, err.Error())
 	}
 }
