@@ -232,13 +232,14 @@ func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
 
 	for _, channel := range channels {
 		channelComplete, _ := d.Database.IsChannelCompleted(channel.ID)
+		d.Database.SaveChannelName(channel.ID, channel.Name)
 		if channelComplete {
-			fmt.Printf("skipping channel %s as already completed", channel.Name)
+			fmt.Printf("skipping channel %s as already completed \n", channel.Name)
 			continue
 		}
 		var lastMessage string
 		for {
-			fmt.Printf("processing messages from channel %s", channel.Name)
+			fmt.Printf("processing messages from channel %s \n", channel.Name)
 			messages, err := d.Session.ChannelMessages(channel.ID, fetchMessageBatchSize, lastMessage, "", "")
 			if err != nil {
 				fmt.Printf("%+v", err)
@@ -284,7 +285,5 @@ func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
 			lastMessage = messages[len(messages)-1].ID
 		}
 	}
-	d.Session.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{
-		Content: "all messages processed",
-	})
+	d.Session.ChannelMessageSend(interaction.ChannelID, "all messages processed")
 }
