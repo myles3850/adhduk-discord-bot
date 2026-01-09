@@ -168,7 +168,7 @@ func (d *Db) IsChannelCompleted(channelId string) (bool, error) {
 func (d *Db) SaveChannelName(channelId string, channelName string) {
 	sqlQuery := `INSERT INTO channel_name (name, discord_id)
 VALUES ($1, $2)
-ON CONFLICT (channel_id) DO UPDATE SET channel_name = EXCLUDED.channel_name;`
+ON CONFLICT (discord_id) DO UPDATE SET channel_name = EXCLUDED.channel_name;`
 
 	_, err := d.Session.Exec(sqlQuery, channelName, channelId)
 	if err != nil {
