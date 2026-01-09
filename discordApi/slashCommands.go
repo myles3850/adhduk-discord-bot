@@ -234,12 +234,12 @@ func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
 		channelComplete, _ := d.Database.IsChannelCompleted(channel.ID)
 		d.Database.SaveChannelName(channel.ID, channel.Name)
 		if channelComplete {
-			fmt.Printf("skipping channel %s as already completed", channel.Name)
+			fmt.Printf("skipping channel %s as already completed \n", channel.Name)
 			continue
 		}
 		var lastMessage string
 		for {
-			fmt.Printf("processing messages from channel %s", channel.Name)
+			fmt.Printf("processing messages from channel %s \n", channel.Name)
 			messages, err := d.Session.ChannelMessages(channel.ID, fetchMessageBatchSize, lastMessage, "", "")
 			if err != nil {
 				fmt.Printf("%+v", err)
