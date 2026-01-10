@@ -10,12 +10,13 @@ import (
 )
 
 type CommandName struct {
-	wheel      string
-	eightBall  string
-	processOld string
+	wheel              string
+	eightBall          string
+	processOld         string
+	fetchSingleMessage string
 }
 
-var names = &CommandName{wheel: "wheel", eightBall: "eight_ball", processOld: "process_old_messages"}
+var names = &CommandName{wheel: "wheel", eightBall: "eight_ball", processOld: "process_old_messages", fetchSingleMessage: "fetch_single_message"}
 
 func (d *Discord) RegisterCommands() {
 	s := d.Session
@@ -91,6 +92,27 @@ func (d *Discord) RegisterCommands() {
 			Description:              "run through all old messages",
 			DefaultMemberPermissions: &defaultMemberPermissions,
 		},
+		{
+			Name:                     names.fetchSingleMessage,
+			Description:              "fetch single message with channel and message IDs",
+			DefaultMemberPermissions: &defaultMemberPermissions,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "channelID",
+					Description: "Channel ID",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Required:    true,
+					MinLength:   &minStringLength,
+				},
+				{
+					Name:        "messageID",
+					Description: "Message ID",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Required:    true,
+					MinLength:   &minStringLength,
+				},
+			},
+		},
 	}
 
 	for _, cmd := range commands {
@@ -120,6 +142,8 @@ func (d *Discord) OnInteraction(s *discordgo.Session, i *discordgo.InteractionCr
 		return
 	case names.processOld:
 		d.ProcessOldMessages(i)
+	case names.fetchSingleMessage:
+		d.FetchSingleMessage(i)
 	}
 }
 
@@ -286,4 +310,28 @@ func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
 		}
 	}
 	d.Session.ChannelMessageSend(interaction.ChannelID, "all messages processed")
+}
+
+func (d *Discord) FetchSingleMessage(interaction *discordgo.InteractionCreate) {
+	data := interaction.ApplicationCommandData()
+	session := d.Session
+	channelID := data.GetOption("channelID").StringValue()
+	messageID := data.GetOption("messageID").StringValue()
+
+	message, err := session.ChannelMessage(channelID, messageID)
+
+	if err != nil {
+		session.ChannelMessageSend(interaction.ChannelID, err.Error())
+	}
+
+	session.ChannelMessageSendComplex(interaction.ChannelID, &discordgo.MessageSend{
+		Embeds: []*discordgo.MessageEmbed{{
+			Author: &discordgo.MessageEmbedAuthor{
+				Name: message.Author.ID + " " + message.Author.Username,
+			},
+			Timestamp: message.Timestamp.String(),
+		},
+		},
+		Content: message.Content,
+	})
 }
