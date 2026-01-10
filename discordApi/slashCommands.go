@@ -16,7 +16,12 @@ type CommandName struct {
 	fetchSingleMessage string
 }
 
-var names = &CommandName{wheel: "wheel", eightBall: "eight_ball", processOld: "process_old_messages", fetchSingleMessage: "fetch_single_message"}
+var names = &CommandName{
+	wheel:              "wheel",
+	eightBall:          "eight_ball",
+	processOld:         "process_old_messages",
+	fetchSingleMessage: "fetch_single_message",
+}
 
 func (d *Discord) RegisterCommands() {
 	s := d.Session
@@ -98,14 +103,14 @@ func (d *Discord) RegisterCommands() {
 			DefaultMemberPermissions: &defaultMemberPermissions,
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Name:        "channelID",
+					Name:        "channel_id",
 					Description: "Channel ID",
 					Type:        discordgo.ApplicationCommandOptionString,
 					Required:    true,
 					MinLength:   &minStringLength,
 				},
 				{
-					Name:        "messageID",
+					Name:        "message_id",
 					Description: "Message ID",
 					Type:        discordgo.ApplicationCommandOptionString,
 					Required:    true,
@@ -315,23 +320,37 @@ func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
 func (d *Discord) FetchSingleMessage(interaction *discordgo.InteractionCreate) {
 	data := interaction.ApplicationCommandData()
 	session := d.Session
-	channelID := data.GetOption("channelID").StringValue()
-	messageID := data.GetOption("messageID").StringValue()
+	channelID := data.GetOption("channel_id").StringValue()
+	messageID := data.GetOption("message_id").StringValue()
+
+	session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "getting you the info now...",
+		},
+	})
 
 	message, err := session.ChannelMessage(channelID, messageID)
 
 	if err != nil {
+		fmt.Printf("%+v", err)
 		session.ChannelMessageSend(interaction.ChannelID, err.Error())
 	}
 
-	session.ChannelMessageSendComplex(interaction.ChannelID, &discordgo.MessageSend{
+	sentMessage, sentErr := session.ChannelMessageSendComplex(interaction.ChannelID, &discordgo.MessageSend{
 		Embeds: []*discordgo.MessageEmbed{{
 			Author: &discordgo.MessageEmbedAuthor{
 				Name: message.Author.ID + " " + message.Author.Username,
 			},
-			Timestamp: message.Timestamp.String(),
+			Timestamp: message.Timestamp.Format("2006-01-02T15:04:05-0700"),
 		},
 		},
 		Content: message.Content,
 	})
+
+	if sentErr != nil {
+		fmt.Printf("%+v", sentErr)
+	}
+
+	fmt.Print(sentMessage)
 }
