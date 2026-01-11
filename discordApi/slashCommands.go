@@ -13,9 +13,10 @@ type CommandName struct {
 	wheel      string
 	eightBall  string
 	processOld string
+	shake      string
 }
 
-var names = &CommandName{wheel: "wheel", eightBall: "eight_ball", processOld: "process_old_messages"}
+var names = &CommandName{wheel: "wheel", eightBall: "eight_ball", processOld: "process_old_messages", shake: "shake"}
 
 func (d *Discord) RegisterCommands() {
 	s := d.Session
@@ -91,6 +92,10 @@ func (d *Discord) RegisterCommands() {
 			Description:              "run through all old messages",
 			DefaultMemberPermissions: &defaultMemberPermissions,
 		},
+		{
+			Name:        names.shake,
+			Description: "sends special shake emote",
+		},
 	}
 
 	for _, cmd := range commands {
@@ -120,7 +125,11 @@ func (d *Discord) OnInteraction(s *discordgo.Session, i *discordgo.InteractionCr
 		return
 	case names.processOld:
 		d.ProcessOldMessages(i)
+		return
+	case names.shake:
+		d.processShakeCommand(i)
 	}
+
 }
 
 //from here all functions are processing functions
@@ -286,4 +295,16 @@ func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
 		}
 	}
 	d.Session.ChannelMessageSend(interaction.ChannelID, "all messages processed")
+}
+
+func (d *Discord) processShakeCommand(interaction *discordgo.InteractionCreate) {
+
+	session := d.Session
+
+	session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "<a:choccoREALLYhappyshakehuggers:1460017063513821267>",
+		},
+	})
 }
