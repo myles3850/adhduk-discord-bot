@@ -14,69 +14,51 @@ import (
 // - error message for max emoji limit
 // - command for removing channel-emoji setup
 
-func (d Discord) processAutoEmojiReactCommand(interaction *discordgo.InteractionCreate) {
-	// var options = [2]string{"Channel", "Emoji"}
+func (d Discord) ProcessAutoEmojiReactCommand(interaction *discordgo.InteractionCreate) {
 	data := interaction.ApplicationCommandData()
 	session := d.Session
-	user := interaction.Member.Nick
-
-	// perms, error := session.ApplicationCommandPermissions(appID, d.GuildId, data.ID)
-
-	// if len(perms.Permissions) == 0 {
-	// 	permissions := discordgo.ApplicationCommandPermissionsList{
-	// 		Permissions: []*discordgo.ApplicationCommandPermissions{
-	// 			{
-	// 				ID:         config.Config.Discord.ModeratorRoleID,
-	// 				Type:       discordgo.ApplicationCommandPermissionTypeRole,
-	// 				Permission: true,
-	// 			},
-	// 			{
-	// 				ID:         config.Config.Discord.MemberRoleID,
-	// 				Type:       discordgo.ApplicationCommandPermissionTypeRole,
-	// 				Permission: false,
-	// 			},
-	// 		},
-	// 	},
-	// 		session.ApplicationCommandPermissionsEdit(appID, d.GuildId, data.ID)
-
-	// }
 
 	if len(data.Options) == 0 {
 		session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("sorry, %s, but i cant seem to find your options :(", user),
+				Content: "sorry, but i cant seem to find your options :(",
 			},
 		})
 	}
 
-	// add data type validation
-	channelID := data.GetOption("Channel").StringValue()
-	// assume emoji will be sent in the form of
-	// <:derpdurian:1452714098847383683>
-	// or just name?? unicode??
-	emoji := data.GetOption("Emoji").StringValue()
+	channel := data.GetOption("channel").ChannelValue(session)
+	emoji := data.GetOption("emoji").StringValue()
 
-	emojiName := ""
-	emojiID := ""
+	fmt.Print(emoji)
+
+	d.Session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("Added %s reaction to channel %s", emoji, channel.Name),
+		},
+	})
+
+	var emojiID string
 
 	if strings.Contains(emoji, "<") {
-		emojiArr := strings.Split(strings.Trim(emoji, "<>"), ":")
-		emojiName = emojiArr[0]
-		emojiID = emojiArr[1]
+		emojiID = strings.Trim(emoji, "<>")
 	} else {
 		emojiID = emoji
 	}
 
-	emojiStruct := discordgo.Emoji{
-		ID:   emojiID,
-		Name: emojiName,
-	}
+	fmt.Print(emojiID)
 
+	// for final ver - check that it doesnt respond to bots AND mods
 	session.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		message := m.Message
-		if message.ChannelID == channelID {
-			session.MessageReactionAdd(channelID, message.ID, emojiStruct.APIName())
+		if message.ChannelID == channel.ID {
+			err := session.MessageReactionAdd(channel.ID, message.ID, emojiID)
+
+			if err != nil {
+				fmt.Printf("%+v", err)
+				session.ChannelMessageSend(interaction.ChannelID, fmt.Sprintf("%+v", err))
+			}
 
 		}
 	})

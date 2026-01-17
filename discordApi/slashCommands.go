@@ -98,17 +98,18 @@ func (d *Discord) RegisterCommands() {
 			Description: "sends special shake emote",
 		},
 		{
-			Name:        names.autoEmojiReact,
-			Description: "Mod only - add auto emoji react to new messages in the specified channel",
+			Name:                     names.autoEmojiReact,
+			Description:              "Mod only - add auto emoji react to new messages in the specified channel",
+			DefaultMemberPermissions: &defaultMemberPermissions,
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Name:        "Channel",
+					Name:        "channel",
 					Description: "Select a channel to apply to",
 					Type:        discordgo.ApplicationCommandOptionChannel,
 					Required:    true,
 				},
 				{
-					Name:        "Emoji",
+					Name:        "emoji",
 					Description: "Select the emoji for the reaction",
 					Type:        discordgo.ApplicationCommandOptionString,
 					Required:    true,
@@ -135,9 +136,6 @@ func (d *Discord) OnInteraction(s *discordgo.Session, i *discordgo.InteractionCr
 
 	data := i.ApplicationCommandData()
 
-	// TODO
-	// Make sure the emoji command is mod-only
-
 	switch data.Name {
 	case names.wheel:
 		d.processWheelCommand(i)
@@ -150,6 +148,9 @@ func (d *Discord) OnInteraction(s *discordgo.Session, i *discordgo.InteractionCr
 		return
 	case names.shake:
 		d.processShakeCommand(i)
+		return
+	case names.autoEmojiReact:
+		d.ProcessAutoEmojiReactCommand(i)
 	}
 
 }
