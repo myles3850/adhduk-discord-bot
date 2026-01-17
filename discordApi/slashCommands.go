@@ -10,13 +10,11 @@ import (
 )
 
 type CommandName struct {
-
-var names = &CommandName{wheel: "wheel", eightBall: "eight_ball""}
-	wheel      string
-	eightBall  string
-	processOld string
-	shake      string
-  autoEmojiReact string
+	wheel          string
+	eightBall      string
+	processOld     string
+	shake          string
+	autoEmojiReact string
 }
 
 var names = &CommandName{wheel: "wheel", eightBall: "eight_ball", processOld: "process_old_messages", shake: "shake", autoEmojiReact: "auto_emoji_react"}
@@ -99,8 +97,8 @@ func (d *Discord) RegisterCommands() {
 			Name:        names.shake,
 			Description: "sends special shake emote",
 		},
-    {
-    	Name:        names.autoEmojiReact,
+		{
+			Name:        names.autoEmojiReact,
 			Description: "Mod only - add auto emoji react to new messages in the specified channel",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
@@ -116,6 +114,7 @@ func (d *Discord) RegisterCommands() {
 					Required:    true,
 				},
 			},
+		},
 	}
 
 	for _, cmd := range commands {
