@@ -5,22 +5,28 @@ import (
 	"math/rand"
 	"strings"
 
+	"choccobear.tech/emojiBot/database"
 	"github.com/bwmarrin/discordgo"
 )
 
 type CommandName struct {
-	wheel          string
-	eightBall      string
-	autoEmojiReact string
+
+var names = &CommandName{wheel: "wheel", eightBall: "eight_ball""}
+	wheel      string
+	eightBall  string
+	processOld string
+	shake      string
+  autoEmojiReact string
 }
 
-var names = &CommandName{wheel: "wheel", eightBall: "eight_ball", autoEmojiReact: "auto_emoji_react"}
+var names = &CommandName{wheel: "wheel", eightBall: "eight_ball", processOld: "process_old_messages", shake: "shake", autoEmojiReact: "auto_emoji_react"}
 
-func (d Discord) RegisterCommands() {
+func (d *Discord) RegisterCommands() {
 	s := d.Session
 	appID := s.State.User.ID
 	guildID := d.GuildId
 	minStringLength := 2
+	var defaultMemberPermissions int64 = discordgo.PermissionManageGuild
 
 	commands := []*discordgo.ApplicationCommand{
 		{
@@ -85,7 +91,16 @@ func (d Discord) RegisterCommands() {
 			},
 		},
 		{
-			Name:        names.autoEmojiReact,
+			Name:                     names.processOld,
+			Description:              "run through all old messages",
+			DefaultMemberPermissions: &defaultMemberPermissions,
+		},
+		{
+			Name:        names.shake,
+			Description: "sends special shake emote",
+		},
+    {
+    	Name:        names.autoEmojiReact,
 			Description: "Mod only - add auto emoji react to new messages in the specified channel",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
@@ -101,7 +116,6 @@ func (d Discord) RegisterCommands() {
 					Required:    true,
 				},
 			},
-		},
 	}
 
 	for _, cmd := range commands {
@@ -114,7 +128,7 @@ func (d Discord) RegisterCommands() {
 	}
 }
 
-func (d Discord) OnInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (d *Discord) OnInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	if i.Type != discordgo.InteractionApplicationCommand {
 		return
@@ -132,12 +146,18 @@ func (d Discord) OnInteraction(s *discordgo.Session, i *discordgo.InteractionCre
 	case names.eightBall:
 		d.process8BallCommand(i)
 		return
+	case names.processOld:
+		d.ProcessOldMessages(i)
+		return
+	case names.shake:
+		d.processShakeCommand(i)
 	}
+
 }
 
 //from here all functions are processing functions
 
-func (d Discord) processWheelCommand(interaction *discordgo.InteractionCreate) {
+func (d *Discord) processWheelCommand(interaction *discordgo.InteractionCreate) {
 	var options []string
 	data := interaction.ApplicationCommandData()
 	session := d.Session
@@ -167,7 +187,7 @@ func (d Discord) processWheelCommand(interaction *discordgo.InteractionCreate) {
 	})
 }
 
-func (d Discord) process8BallCommand(interaction *discordgo.InteractionCreate) {
+func (d *Discord) process8BallCommand(interaction *discordgo.InteractionCreate) {
 	ballAnswers := []string{
 		"It is certain",
 		"It is decidedly so",
@@ -223,6 +243,91 @@ func (d Discord) process8BallCommand(interaction *discordgo.InteractionCreate) {
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("I asked the magical 8 ball \"%s\" , and it said **%s**.", question, selectedAnswer),
+		},
+	})
+}
+
+func (d *Discord) ProcessOldMessages(interaction *discordgo.InteractionCreate) {
+	const fetchMessageBatchSize = 100
+
+	d.Session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "getting you the info now...",
+		},
+	})
+
+	channels, err := d.Session.GuildChannels(d.GuildId)
+	if err != nil {
+		fmt.Printf("%+v", err)
+	}
+
+	for _, channel := range channels {
+		channelComplete, _ := d.Database.IsChannelCompleted(channel.ID)
+		d.Database.SaveChannelName(channel.ID, channel.Name)
+		if channelComplete {
+			fmt.Printf("skipping channel %s as already completed \n", channel.Name)
+			continue
+		}
+		var lastMessage string
+		for {
+			fmt.Printf("processing messages from channel %s \n", channel.Name)
+			messages, err := d.Session.ChannelMessages(channel.ID, fetchMessageBatchSize, lastMessage, "", "")
+			if err != nil {
+				fmt.Printf("%+v", err)
+			}
+			if len(messages) == 0 {
+				break
+			}
+			for _, message := range messages {
+				fmt.Printf("Processing message: %s\n", message.ID)
+				userID, err := d.Database.SaveUser(&database.User{
+					DiscordID:       message.Author.ID,
+					DiscordUsername: message.Author.Username,
+				})
+				if err != nil {
+					fmt.Printf("Error saving user: %+v\n", err)
+					break
+				}
+				messageID, err := d.Database.SaveMessage(&database.Message{
+					DiscordMessageID: message.ID,
+					ChannelID:        channel.ID,
+					AuthorID:         userID,
+					CreatedAt:        message.Timestamp,
+				})
+				if err != nil {
+					fmt.Printf("Error saving message: %+v\n", err)
+					break
+				}
+				if len(message.Reactions) > 0 {
+					for _, react := range message.Reactions {
+						d.Database.SaveReaction(&database.Reaction{
+							MessageID: messageID,
+							Emoji:     react.Emoji.Name,
+							ReactorID: userID,
+						})
+					}
+				}
+			}
+			if len(messages) < fetchMessageBatchSize {
+				_ = d.Database.MarkChannelCompleted(channel.ID)
+				lastMessage = ""
+				break
+			}
+			lastMessage = messages[len(messages)-1].ID
+		}
+	}
+	d.Session.ChannelMessageSend(interaction.ChannelID, "all messages processed")
+}
+
+func (d *Discord) processShakeCommand(interaction *discordgo.InteractionCreate) {
+
+	session := d.Session
+
+	session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "<a:choccoREALLYhappyshakehuggers:1460017063513821267>",
 		},
 	})
 }

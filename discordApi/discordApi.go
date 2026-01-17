@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"os"
 
+	"choccobear.tech/emojiBot/database"
 	"github.com/bwmarrin/discordgo"
 )
 
 type Discord struct {
-	Session *discordgo.Session
-	GuildId string
+	Session  *discordgo.Session
+	Database *database.Db
+	GuildId  string
 }
 
-func Setup() (*Discord, error) {
+func Setup(db *database.Db) (*Discord, error) {
 	token := os.Getenv("DISCORD_BOT_TOKEN")
 	guildId := os.Getenv("DISCORD_GUILD_ID")
 
@@ -22,7 +24,7 @@ func Setup() (*Discord, error) {
 		fmt.Println("error creating Discord session: ", err)
 		return &Discord{Session: discord, GuildId: guildId}, err
 	}
-	return &Discord{Session: discord, GuildId: guildId}, err
+	return &Discord{Session: discord, GuildId: guildId, Database: db}, err
 }
 
 func (d *Discord) GetAllEmojis() []*discordgo.Emoji {

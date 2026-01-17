@@ -1,0 +1,5 @@
+CREATE TABLE channel_name (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	discord_id VARCHAR(255) NOT NULL UNIQUE,
+);
